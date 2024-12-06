@@ -14,6 +14,9 @@ void handle_response(char *request, int client_sock) {
         return;
     }
 
+    char command[] = "./grade.sh";
+    char reponame[32];
+
     char* question = strstr(request, "?");
     if(question == NULL) {
       write(client_sock, HTTP_404_NOT_FOUND, strlen(HTTP_404_NOT_FOUND));
@@ -23,9 +26,11 @@ void handle_response(char *request, int client_sock) {
     char* lastspace = strstr(question, " ");
     *lastspace = 0;
 
-    char* reponame = question + 1;
+    strcpy(reponame, question + 1);
+    printf("%p %p\n", reponame, command);
+    printf("%s %s\n", reponame, command);
     printf("The reponame is %s\n", reponame);
-    
+
     pid_t result = fork();
     if(result != 0) {
       int status;
@@ -34,10 +39,12 @@ void handle_response(char *request, int client_sock) {
     }
     else {
       write(client_sock, HTTP_200_OK, strlen(HTTP_200_OK));
-      char* args[] = { "./grade.sh", reponame, NULL };
+      char* args[] = { command, reponame, NULL };
       dup2(client_sock, STDOUT_FILENO);
       dup2(client_sock, STDERR_FILENO);
-      execvp("./grade.sh", args);
+      execvp(command, args);
+      printf("execvp failed for %s\n", command);
+      exit(1);
     }
 }
 
@@ -49,4 +56,3 @@ int main(int argc, char *argv[]) {
     }
     start_server(&handle_response, port);
 }
-
